@@ -367,14 +367,6 @@ public class App
                             //invalid input
                         }
 
-                        System.out.println("Transitivity [y-Yes, n-No, r-Random]:");
-                        System.out.print("> ");
-                        transitive = in.next();
-                        while(!validTransitive(transitive)){
-                            transitive = in.next();
-                        }
-                        transitivity.add(transitive);
-
                         System.out.println("Select Connective types [1, 2, 3, 4, 5]:");
                         System.out.println("1 = disjuntion (||), 2 = conjunction (&), 3 = implication (->), 4 = bi-implication (<->), 5 = mixture");
                         System.out.println("Enter chosen numbers separated by commas:");
@@ -393,14 +385,17 @@ public class App
                             }
                         }
                 
-                    }{System.out.println("Transitivity [y-Yes, n-No, r-Random]:");
+                    }
+                    else{ anComplexity.add(1); consComplexity.add(1);}
+
+                    System.out.println("Transitivity [y-Yes, n-No, r-Random]:");
                     System.out.print("> ");
                     transitive = in.next();
                     while(!validTransitive(transitive)){
                         transitive = in.next();
                     }
                     transitivity.add(transitive);
-}
+
 
                     ArrayList<String> characterSet = new ArrayList<>();
                     System.out.println("Enter the character set for the knowledge base [lowerlatin, upperlatin, altlatin, greek]");
@@ -431,8 +426,8 @@ public class App
                             ExecutorService executor = Executors.newSingleThreadExecutor();
                             long timeoutDuration = 2000000000; /// May change 
                             try{
-                            Callable<ArrayList<ArrayList<String>>> kbGenerationTask = () -> {
-                                    return KBGeneratorThreadedOPT.KBGenerate(defImplicationDistribution, s, anComplexity, consComplexity, connectiveLists, characterSet, transitivity, statements,reuseConsequent);
+                                Callable<ArrayList<ArrayList<String>>> kbGenerationTask = () -> {
+                                        return KBGeneratorThreadedOPT.KBGenerate(defImplicationDistribution, s, anComplexity, consComplexity, connectiveLists, characterSet, transitivity, statements,reuseConsequent);
                                 };
                                 Future<ArrayList<ArrayList<String>>> future = executor.submit(kbGenerationTask);
                                 KB = future.get(timeoutDuration, TimeUnit.MILLISECONDS);
@@ -450,6 +445,9 @@ public class App
                                 rerun = true;
                             }catch(InterruptedException | ExecutionException e){
 
+                            }catch (StackOverflowError  e) {
+                                    e.printStackTrace();
+                        
                             }finally{
                                 executor.shutdownNow();
                             }

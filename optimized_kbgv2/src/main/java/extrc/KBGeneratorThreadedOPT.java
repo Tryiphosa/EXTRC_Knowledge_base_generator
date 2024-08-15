@@ -36,13 +36,35 @@ public class KBGeneratorThreadedOPT{
      * @param transitivity  The degree of transitivity within the statements.
      * @return A ArrayList<ArrayList<String>> representing the generated KB.
      */
-    public static ArrayList<ArrayList<String>> KBGenerate(int[] DiDistribution, boolean simpleOnly, ArrayList<Integer> complexityAnt, ArrayList<Integer> complexityCon, int[] connectiveType, ArrayList<String> characterSet,  ArrayList<String> transitivity, ArrayList<Integer> numStatements, boolean reuseConsequent){      
+    public static ArrayList<ArrayList<String>> KBGenerate(int[] DiDistribution, boolean simpleOnly, ArrayList<Integer> complexityAnt, ArrayList<Integer> complexityCon, int[] connectives, ArrayList<String> characterSet,  ArrayList<String> transitivity, ArrayList<Integer> numStatements, boolean reuseConsequent){      
         // selecting character set
         makeAtom.setCharacters(characterSet.get(0));
 
+        //preparing connectives
+        ArrayList<Integer> connectiveType = new ArrayList<>();
+        ArrayList<Integer> infinityConnectiveType = new ArrayList<>();
+
+        for (int i: connectives){
+            if(i == 1 || i==2){ if(!connectiveType.contains(i)){connectiveType.add(i);}}
+            else if(i == 3 || i==4){if(!infinityConnectiveType.contains(i)){ infinityConnectiveType.add(i);}}
+            else if(i == 5){
+                if(!connectiveType.contains(1)){connectiveType.add(1);}
+                if(!connectiveType.contains(2)){connectiveType.add(2);}
+                if(!infinityConnectiveType.contains(3)){ infinityConnectiveType.add(3);}
+                if(!infinityConnectiveType.contains(4)){ infinityConnectiveType.add(4);}
+
+            }
+        }
+      //  System.out.println(connectiveType);
+       // System.out.println(infinityConnectiveType);
+        
+        
+        
         //Antecedent Complexity
         int anteComplexity = complexityAnt.get(0);
         int consComplexity = complexityCon.get(0);
+        System.out.println(anteComplexity+"|"+consComplexity);
+       
        
         // generating atoms
         int numAtoms = 0;
@@ -59,8 +81,7 @@ public class KBGeneratorThreadedOPT{
             return null;
         };
 
-     
-       
+
         // generating statements per rank
         ArrayList<ArrayList<String>> KnowledgeB = new ArrayList<>();
 
@@ -79,7 +100,11 @@ public class KBGeneratorThreadedOPT{
             String conflictAtom ="";
             String contrConsequent = "";
             synchronized (lock) {
-                for(int i=0; i<DiDistribution.length;i++){
+                int defRanks = 0;
+                if(infinityConnectiveType.size()==0){defRanks=DiDistribution.length;}
+                else{defRanks=DiDistribution.length-1;}
+
+                for(int i=0; i<defRanks;i++){
                     while (atomList.size() < anteComplexity || atomList.size() <consComplexity) { 
                         // Wait for creation of atoms to complete index i
                     }
@@ -157,6 +182,7 @@ public class KBGeneratorThreadedOPT{
                     }
                         
                 }
+               
             }
             return null;
         };
@@ -169,7 +195,10 @@ public class KBGeneratorThreadedOPT{
                 String consequent="";
                 int ran = 0;
                 synchronized (lock) {
-                    for(int i=0; i<DiDistribution.length;i++){
+                    int defRanks = 0;
+                    if(infinityConnectiveType.size()==0){defRanks=DiDistribution.length;}
+                    else{defRanks=DiDistribution.length-1;}
+                    for(int i=0; i<defRanks;i++){
                         
                         while (!generateDIsCompletionStatus[i].get()) {
                             //Wait
@@ -214,6 +243,50 @@ public class KBGeneratorThreadedOPT{
                             }
                         
                         }   
+                        
+                    }
+                    if(infinityConnectiveType.size()>0){
+                        currAtom = getFormula(anteComplexity, atomList, connectiveType);
+                        int index = 0;
+                        ArrayList<String> entry = new ArrayList<>();
+
+                        while(DiDistribution[defRanks]>0){
+                            index++;
+                            if (transitiveStatements.equalsIgnoreCase("n")){
+                                consequent = getFormula(consComplexity, atomList, connectiveType);
+                                if(!reuseConsequent){atomList.remove((String)consequent);}
+                                usedAtoms.add(consequent);
+                                entry.add(currAtom+" "+getOperator(infinityConnectiveType)+" "+consequent);
+                                DiDistribution[defRanks]--;
+                            }else if(transitiveStatements.equalsIgnoreCase("y")){
+                                if(index>1){
+                                    currAtom = consequent;
+                                }
+                                consequent = getFormula(consComplexity, atomList, connectiveType); 
+                                if(!reuseConsequent){atomList.remove((String)consequent);}
+                                usedAtoms.add(consequent);
+                                entry.add(currAtom+" "+getOperator(infinityConnectiveType)+" "+consequent);
+                                DiDistribution[defRanks]--;
+                                
+                            }else{
+                                if(index>1){
+                                    ran  = random.nextInt(2);
+                                    if (ran == 1){
+                                            currAtom = consequent;
+                                    }else{
+                                        currAtom = getFormula(anteComplexity, atomList, connectiveType);
+                                    }
+                                }
+                               consequent = getFormula(consComplexity, atomList, connectiveType); 
+                               if(!reuseConsequent){atomList.remove((String)consequent);}
+                                usedAtoms.add(consequent);
+                                entry.add(currAtom+" "+getOperator(infinityConnectiveType)+" "+consequent);
+                                DiDistribution[defRanks]--;
+                            }
+                        
+                        }   
+                        KnowledgeB.add(entry);
+                        
                     }
                 } 
             }
@@ -255,13 +328,26 @@ public class KBGeneratorThreadedOPT{
      * @param characterSet  The type of characters used as atoms to generaate the defeasible knowledge base. 
      * @return A ArrayList<ArrayList<String>> representing the generated KB.
      */
-    public static ArrayList<ArrayList<String>> KBGenerateNew(int[] newDistribution, ArrayList<ArrayList<String>>  kbContent, ArrayList<Integer> numForm ,ArrayList<String> kbAtomList, ArrayList<String> kbUsedAtoms,int[] connectiveType, ArrayList<String> characterSet, ArrayList<String> transitivity, boolean reuseConsequent){
+    public static ArrayList<ArrayList<String>> KBGenerateNew(int[] newDistribution, ArrayList<ArrayList<String>>  kbContent, ArrayList<Integer> numForm ,ArrayList<String> kbAtomList, ArrayList<String> kbUsedAtoms,int[] connectives, ArrayList<String> characterSet, ArrayList<String> transitivity, boolean reuseConsequent){
         //Determine complexities
         String[] formula = kbContent.get(0).get(0).split("["+con.getBiImplicationSymbol()+con.getDISymbol()+"]");
         int anteComplexity = getComplexity(formula[0]);
         int consComplexity = getComplexity(formula[2].trim());
 
-        
+        //preparing connectives
+        ArrayList<Integer> connectiveType = new ArrayList<>();
+        ArrayList<Integer> infinityConnectiveType = new ArrayList<>();
+
+        for (int i: connectives){
+            if(i == 1 || i==2){ if(!connectiveType.contains(i)){connectiveType.add(i);}}
+            else if(i == 3 || i==4){if(!infinityConnectiveType.contains(i)){ infinityConnectiveType.add(i);}}
+            else if(i == 5){
+                if(!connectiveType.contains(1)){connectiveType.add(1);}
+                if(!connectiveType.contains(2)){connectiveType.add(2);}
+                if(!infinityConnectiveType.contains(3)){ infinityConnectiveType.add(3);}
+                if(!infinityConnectiveType.contains(4)){ infinityConnectiveType.add(4);}
+            }
+        }
       
         //ensuring theres enough atoms
         int atomLength = 1;
@@ -476,51 +562,42 @@ public class KBGeneratorThreadedOPT{
      * @param connectives The list of connectives used to create the formula.
      * @return A String type formula.
      */
-    public static String getFormula( int anteComplexity, ArrayList<String> atomList, int [] connectives) { 
+    public static String getFormula( int anteComplexity, ArrayList<String> atomList, ArrayList<Integer> connectives) { 
         String formula = "";
 
         for(int i = 0; i< anteComplexity; i++){
-            if(anteComplexity==1){try {Thread.sleep(2);} catch (InterruptedException e) { e.printStackTrace();}}
+            if(anteComplexity==1){try {Thread.sleep(1);} catch (InterruptedException e) { e.printStackTrace();}}
             formula = formula + atomList.get(1+random.nextInt(atomList.size()-1));
     
             if(i<anteComplexity-1)
             {  
-                switch (connectives[random.nextInt(connectives.length)]) {
-                    case 0:
-                        int value = 0;
-                        do{
-                            value=connectives[random.nextInt(connectives.length)];
-                            if(value==1){formula=formula+ con.getDisjunctionSymbol();}
-                            else if(value==2){formula=formula+con.getConjunctionSymbol();}
-                            else if (value==3){formula=formula+con.getImplicationSymbol();}
-                            else if (value==4){formula=formula+con.getImplicationSymbol();}
-                            
-                        }while(value==0);
-                        break;
+                switch (connectives.get(random.nextInt(connectives.size()))) {
                     case 1:
-                        formula=formula+ con.getDisjunctionSymbol();
+                        formula = formula + con.getDisjunctionSymbol();
                         break;
                     case 2:
-                        formula=formula+con.getConjunctionSymbol();
+                        formula = formula+con.getConjunctionSymbol();
                         break;
-                    case 3:
-                        formula=formula+con.getImplicationSymbol();
-                        break;
-                    case 4:
-                        formula=formula+con.getBiImplicationSymbol();
-                        break;
-                    case 5:
-                        int type = 1 + random.nextInt(3);
-                        if(type==1){formula=formula+ con.getDisjunctionSymbol();}
-                        else if(type==2){formula=formula+con.getConjunctionSymbol();}
-                        else if (type==3){formula=formula+con.getImplicationSymbol();}
-                        else if (type==4){formula=formula+con.getBiImplicationSymbol();}
-                        break;
+
                 }
             }
         } 
     
             return formula;
+    }
+    
+    public static String getOperator(ArrayList<Integer> connectives) { 
+        String formula = "";
+        switch (connectives.get(random.nextInt(connectives.size()))) {
+            case 3:
+                formula = con.getImplicationSymbol();
+                break;
+            case 4:
+                formula = con.getBiImplicationSymbol();
+                break;
+
+        }
+        return formula;
     }
     
      /**

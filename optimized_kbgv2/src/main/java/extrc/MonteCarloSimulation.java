@@ -10,7 +10,7 @@ import java.util.Random;
 
 
 public class MonteCarloSimulation {
-    private static final int NUM_SIMULATIONS = 10000; // Number of simulations to run
+    private static final int NUM_SIMULATIONS = 1000; // Number of simulations to run
     
 
     public static void main(String[] args) {
@@ -54,13 +54,11 @@ public class MonteCarloSimulation {
                 if(simpleDefImplications.equalsIgnoreCase("n")){
                     fileWriter.write(complexity);
                     fileWriter.newLine();
-                }
-                fileWriter.write(transitivity);
-                fileWriter.newLine();
-                if(simpleDefImplications.equalsIgnoreCase("n")){
                     fileWriter.write(connectiveTypes);
                     fileWriter.newLine();
                 }
+                fileWriter.write(transitivity);
+                fileWriter.newLine();
                 fileWriter.write(characterSet);
                 fileWriter.newLine();
                 fileWriter.write("n");
@@ -113,16 +111,56 @@ public class MonteCarloSimulation {
     }
 
     private static String getRandomConnectiveTypes(Random random) {
-        String[] connectives = {"1", "2", "3", "4", "5"};
-        int numberOfConnectives = 1 + random.nextInt(connectives.length);
-        StringBuilder selectedConnectives = new StringBuilder();
-        for (int i = 0; i < numberOfConnectives; i++) {
-            selectedConnectives.append(connectives[random.nextInt(connectives.length)]);
-            if (i < numberOfConnectives - 1) {
-                selectedConnectives.append(",");
-            }
+        String connectives = ""; //{"1", "2", "3", "4", "5"};
+        int choice = 1 + random.nextInt(15);
+        switch (choice) {
+            case 1:
+                connectives="1";
+                break;
+            case 2:
+                connectives="2";
+                break;
+            case 3:
+                connectives="3";
+                break;
+            case 4:
+                connectives="4";
+                break;
+            case 5:
+                connectives="1,2,3,4";
+                break;
+            case 6:
+                connectives="1,2";
+                break;
+            case 7:
+                connectives="1,3";
+                break;
+            case 8:
+                connectives="1,4";
+                break;
+            case 9:
+                connectives="1,2,3";
+                break;
+            case 10:
+                connectives="1,3,4";
+                break;
+            case 11:
+                connectives="2,3";
+                break;
+            case 12:
+                connectives="2,4";
+                break;
+            case 13:
+                connectives="2,3,4";
+                break;
+            case 14:
+                connectives="1,2,4";
+                break;
+        
+            default:
+                break;
         }
-        return selectedConnectives.toString();
+        return connectives;
     }
 
     private static String getRandomCharacterSet(Random random) {
