@@ -102,7 +102,7 @@ public class MonteCarloSimulation {
     }
 
     private static int getRandomComplexity(Random random) {
-        return 1 + random.nextInt(15);
+        return 1 + random.nextInt(9);
     }
 
     private static String getRandomTransitivity(Random random) {
