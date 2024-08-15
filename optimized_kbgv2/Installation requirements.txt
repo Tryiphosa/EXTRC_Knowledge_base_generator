@@ -1,0 +1,4 @@
+Installation:
+
+1. download miktex from https://miktex.org/download
+2.

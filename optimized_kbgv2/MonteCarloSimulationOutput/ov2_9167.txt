@@ -1,0 +1,15 @@
+ov2
+142
+ld
+15781
+812
+n
+n
+5|5
+y
+1
+lowerlatin
+n
+n
+n
+q

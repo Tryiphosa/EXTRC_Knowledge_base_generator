@@ -1,0 +1,15 @@
+ov2
+226
+ld
+58008
+952
+n
+y
+14|13
+n
+4
+lowerlatin
+n
+n
+n
+q

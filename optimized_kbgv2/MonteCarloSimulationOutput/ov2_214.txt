@@ -1,0 +1,15 @@
+ov2
+224
+ld
+74372
+730
+n
+n
+8|7
+r
+4
+lowerlatin
+n
+n
+n
+q

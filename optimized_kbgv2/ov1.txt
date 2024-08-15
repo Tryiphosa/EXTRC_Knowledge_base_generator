@@ -1,0 +1,17 @@
+ov1
+20
+lg
+450
+0
+n
+y
+1
+2
+1,2,3,4
+n
+lowerlatin
+n
+y
+n
+q
+

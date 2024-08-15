@@ -1,0 +1,15 @@
+ov2
+30
+ld
+26355
+785
+n
+n
+5|9
+r
+4,2
+lowerlatin
+n
+n
+n
+q

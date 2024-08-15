@@ -1,0 +1,13 @@
+ov2
+249
+ld
+80159
+548
+y
+y
+y
+lowerlatin
+n
+n
+n
+q

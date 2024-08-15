@@ -1,0 +1,13 @@
+ov2
+305
+n
+15000
+607
+y
+n
+n
+lowerlatin
+n
+n
+n
+q

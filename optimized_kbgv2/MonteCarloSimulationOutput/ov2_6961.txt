@@ -1,0 +1,13 @@
+ov2
+211
+f
+12345
+251
+y
+y
+n
+lowerlatin
+n
+n
+n
+q

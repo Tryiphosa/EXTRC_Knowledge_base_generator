@@ -1,0 +1,5 @@
+<configuration>
+  <!-- Other configurations -->
+  <logger name="org.mongodb.driver" level="INFO" />
+  <!-- Other loggers -->
+</configuration>

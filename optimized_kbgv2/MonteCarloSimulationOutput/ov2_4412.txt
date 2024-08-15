@@ -1,0 +1,15 @@
+ov2
+301
+ld
+90081
+714
+n
+n
+12|8
+y
+1
+lowerlatin
+n
+n
+n
+q

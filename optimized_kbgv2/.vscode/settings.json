@@ -1,0 +1,25 @@
+{
+  "java.configuration.updateBuildConfiguration": "interactive",
+  "java.compile.nullAnalysis.mode": "automatic",
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "liveServer.settings.CustomBrowser": "microsoft-edge",
+  "liveServer.settings.donotShowInfoMsg": true,
+  "workbench.editor.enablePreview": false,
+  "workbench.colorTheme": "Default Light Modern",
+  "emmet.includeLanguages": {
+    "javascript": "javascriptreact"
+  },
+  "python.defaultInterpreterPath": "C:\\Users\\Mamodike\\OneDrive - University of Cape Town\\2023\\Semester 2\\CSC3003S\\Tutorials\\Flask\\myproject\\venv\\Scripts\\python.exe",
+  "workbench.editorAssociations": {
+    "*.db": "default"
+  },
+  "editor.formatOnSave": true,
+  "files.autoSave": "afterDelay",
+  "git.autofetch": true,
+  "terminal.integrated.fontFamily": "Consolas",
+  "mongodbLanguageServer.trace.server": {
+    "format": "json",
+    "verbosity": "off",
+    "loggingLevel": 0
+  }
+}

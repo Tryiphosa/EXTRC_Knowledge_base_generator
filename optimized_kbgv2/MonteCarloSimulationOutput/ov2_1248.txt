@@ -1,0 +1,13 @@
+ov2
+50
+f
+40370
+804
+y
+y
+n
+lowerlatin
+n
+n
+n
+q

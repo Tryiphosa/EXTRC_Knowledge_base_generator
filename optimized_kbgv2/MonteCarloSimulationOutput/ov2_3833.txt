@@ -1,0 +1,13 @@
+ov2
+272
+ld
+75399
+370
+y
+n
+n
+lowerlatin
+n
+n
+n
+q
