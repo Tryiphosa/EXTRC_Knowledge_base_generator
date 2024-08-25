@@ -10,7 +10,7 @@ import java.util.Random;
 
 
 public class MonteCarloSimulation {
-    private static final int NUM_SIMULATIONS = 1000; // Number of simulations to run
+    private static final int NUM_SIMULATIONS = 6000; // Number of simulations to run
     
 
     public static void main(String[] args) {
@@ -33,7 +33,7 @@ public class MonteCarloSimulation {
             String characterSet = getRandomCharacterSet(random);
 
             // Generate text files.
-            String OUTPUT_FILE = "MonteCarloSimulationOutput/"+generatorType+"_"+(i+1)+".txt"; // File to store results
+            String OUTPUT_FILE = "MonteCarloSimulation/"+generatorType+"_"+(i+1)+".txt"; // File to store results
 
             try (BufferedWriter fileWriter = new BufferedWriter(new FileWriter(OUTPUT_FILE))) { 
             // Save the generated data to a text file

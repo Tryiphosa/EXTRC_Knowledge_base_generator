@@ -1,5 +1,10 @@
 
 package extrc;
+import java.io.*;
+
+import org.tweetyproject.logics.pl.syntax.*;
+import org.tweetyproject.logics.pl.parser.PlParser;
+import org.tweetyproject.commons.ParserException;
 
 import java.util.*;
 import java.util.concurrent.*;
@@ -8,6 +13,14 @@ import java.net.ServerSocket;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+
 
 /**
  * The App class is responsible for generating a knowledge base (KB) of defeasible implications based on user-defined parameters.
@@ -19,8 +32,6 @@ public class App
     private static AtomBuilder gen = AtomBuilder.getInstance();
     private static int filenum = 1;
     private static String choice;
-    private static final int PORT = 6000; // Port number for the server
-
     /**
      * The main method for running the knowledge base (KB) generation program.
      *
@@ -31,90 +42,112 @@ public class App
         Scanner in = new Scanner(System.in);
    
         do{
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                System.out.println("Shutdown hook triggered. Cleaning up...");
+            }));
+
             con.reset();
-            System.out.println( "Defeasible Knowledge Base Generator:");
+            System.out.println( "\nDefeasible Knowledge Base Generator:");
             List<Integer> complexityAntList = new ArrayList<>(); // Number of possible connectives in a defImplications antecedent
             List<Integer> complexityConList = new ArrayList<>(); // Number of possible connectives in a defImplications consequent
             List<Integer> connectiveList = new ArrayList<>(); // Number of different connectives a defImplication can have
             
-            System.out.println("Generator type? [s (standard), ov1 (optimised v1), ov2 (optimised v2), r (reuse existing KB) ]:");
+            System.out.println("\nGenerator type? [s (standard), ov1 (optimised v1), ov2 (optimised v2), r (reuse existing KB) ]:");
             System.out.print("> ");
             String type = in.next(); // Knowledge base generation using only simple defImplications
             while (!typeIsValid(type)) {
-                System.out.println("Invalid entry. Try again. Generator type? [s (standard), ov1 (optimised v1), ov2 (optimised v2) ]:");
+                System.out.println("\nInvalid entry. Try again. Generator type? [s (standard), ov1 (optimised v1), ov2 (optimised v2) ]:");
                 System.out.print("> ");
                 type = in.next(); // Knowledge base generation using only simple defImplications
             }
 
-            System.out.println("Enter the number of ranks in the KB (for normal distribution enter value above 6):");
+            System.out.println("\nEnter the ratio of classical to defeasible knowledge bases [classical:defeasible]:");
+            System.out.print("> ");
+            String[] ratio = (in.next()).split(":");
+                      
+          
+
+            System.out.println("\nEnter the number of ranks in the KB (for normal distribution enter value above 6):");
             System.out.print("> ");
             int numRanks = in.nextInt(); // Number of ranks in the knowledgebase (including rank 0)
             while ((numRanks <= 0)){
-                System.out.println("Enter a non-negative number of ranks in the KB:");
+                System.out.println("\nEnter a non-negative number of ranks in the KB:");
                 System.out.print("> ");
                 numRanks = in.nextInt();
             }
-
+            
+            double decay = 0.0;
             if(!type.equalsIgnoreCase("r")){
-                System.out.println("Enter the defImplication distribution [f (flat), lg (linear-growth), ld (linear-decline), r (random), n (normal- for ranks above 6)]:");
+                System.out.println("\nEnter the defImplication distribution [f (flat), lg (linear-growth), ld (linear-decline), r (random), n (normal- for ranks above 6), eg (exponential-growth),  ed (exponential-decline)]:");
                 System.out.print("> ");
                 String distribution = in.next(); // Distribution of the defImplications in the knowledge base
                 while (!validDistribution(distribution) || !withValidRanks(numRanks, distribution)){
-                    System.out.println("Enter valid defImplication distribution [f (flat), lg (linear-growth), ld (linear-decline), r (random), n (normal- for ranks above 7)]:");
+                    System.out.println("\nEnter valid defImplication distribution [f (flat), lg (linear-growth), ld (linear-decline), r (random), n (normal- for ranks above 6), eg (exponential-growth),  ed (exponential-decline)]:");
                     System.out.print("> ");
                     distribution = in.next();
                 }
+  
 
                 int min = minDefImplications(distribution, numRanks);
-                System.out.println("Enter the number of defImplications in the KB (Must be greater than or equal to " + min + "):");
+                
+
+                System.out.println("\nEnter the number of defImplications in the KB (Must be greater than or equal to " + min + "):");
                 System.out.print("> ");
-                int numDefImplications = in.nextInt(); // Number of defImplications in the knowledge base
-                while (!(numDefImplications >= min)){
-                    System.out.println("Enter a valid number of defImplications in the KB (Must be greater than or equal to " + min + "):");
+                int DefStatements = in.nextInt(); // Number of defImplications in the knowledge base
+                while (!(DefStatements >= min)){
+                    System.out.println("\nEnter a valid number of defImplications in the KB (Must be greater than or equal to " + min + "):");
                     System.out.print(">");
-                    numDefImplications = in.nextInt();
+                    DefStatements = in.nextInt();
                 }
+                
+                decay= (double)DefStatements / numRanks;
+                int numDefImplications=(int) (DefStatements*(((double)Integer.parseInt(ratio[1]))/(Integer.parseInt(ratio[1])+Integer.parseInt(ratio[0]))));
+                int ClasStatements = DefStatements-numDefImplications;
+               // System.out.println("classic:"+ClasStatements+"  def:"+numDefImplications+"         --->"+(((double)Integer.parseInt(ratio[1]))/(Integer.parseInt(ratio[1])+Integer.parseInt(ratio[0]))));
+                int[] defImplicationDistribution = Distribution.distributeDIs(numDefImplications, numRanks, distribution,decay);
 
-                int[] defImplicationDistribution = Distribution.distributeDIs(numDefImplications, numRanks, distribution);
-
-                System.out.print("Enter the minimum amount of statements required per rank: ");
+                System.out.println("\nEnter the minimum amount of statements required per rank: ");
                 System.out.print("> ");
                 int minStatements = in.nextInt(); // Distribution of the defImplications in the knowledge base
                 while (minStatements<0){
-                    System.out.println("Enter valid minimum amount of statements per rank ( 0 or greater):");
+                    System.out.println("\nEnter valid minimum amount of statements per rank ( 0 or greater):");
                     System.out.print("> ");
                     minStatements = in.nextInt();
                 }
                 
-                int minValue = 10000;
+                int minValue = 1000000;
                 for (int i=0; i<defImplicationDistribution.length;i++){
-                
+                  //  System.out.println(defImplicationDistribution[i]);
                     if (minValue > defImplicationDistribution[i] ){
                         minValue = defImplicationDistribution[i];
                     }
                 }
-                if(minValue < minStatements){
+                if(minValue < minStatements){ /// for defeasible statements
                     int offset = minStatements-minValue;
                     for (int i=0; i<defImplicationDistribution.length;i++){
+                       
                         defImplicationDistribution[i]=defImplicationDistribution[i]+ offset; 
                     }
                     numDefImplications=numDefImplications+offset*defImplicationDistribution.length;
                 }
+                if(ClasStatements < minStatements){ /// for classical statements
+                    ClasStatements = minStatements;
+                }
                 ArrayList<Integer> statements= new ArrayList<>();
                 statements.add(numDefImplications);
+                statements.add(ClasStatements);
 
-                System.out.println("Simple defImplications only? [y, n]:");
-                System.out.print("> ");
-                String smple = in.next(); // Knowledge base generation using only simple defImplications
-                boolean simple = (smple.equalsIgnoreCase("y")) ? true : false;
-
-                System.out.println("Reuse Consequent? [y, n]:");
+                System.out.println("\nReuse Consequent? [y, n]:");
                 System.out.print("> ");
                 String reuseAnt = in.next(); // Reuse the rankBaseConsequent to generate ranks in the knowledge base
                 boolean reuseConsequent = (reuseAnt.equalsIgnoreCase("y")) ? true : false;
         
                 if (!type.equalsIgnoreCase("ov2")) {
-            
+                    System.out.println("\nSimple defImplications only? [y, n]:");
+                    System.out.print("> ");
+                    String smple = in.next(); // Knowledge base generation using only simple defImplications
+                    boolean simple = (smple.equalsIgnoreCase("y")) ? true : false;
+
                     if((simple == false)){
                         System.out.println("Antecedent complexity [0, 1, 2]:");
                         System.out.println("Enter chosen numbers seperated by commas:");
@@ -351,28 +384,36 @@ public class App
                     ArrayList<Integer> anComplexity = new ArrayList<>();
                     ArrayList<Integer> consComplexity =new ArrayList<>(); 
                     ArrayList<String> transitivity = new ArrayList<>();
+                    ArrayList<String> formatList = new ArrayList<>();
 
                     int [] connectiveLists = new int [5];
+                    String connectors ="";
                     String transitive="";
-                    if((simple == false)){
-                        System.out.println("Enter Antecedent and Consequent complexity in the format \"Ant|Cons\":");
-                        System.out.print("> ");
-                        String Complexity = in.next();
 
-                        String[] complexityStrings = Complexity.split("|");
-                        if(complexityStrings.length==3){
-                            anComplexity.add(Integer.parseInt(complexityStrings[0].trim()));
-                            consComplexity.add(Integer.parseInt(complexityStrings[2].trim()));
-                        }else{
-                            //invalid input
-                        }
+                    System.out.println("\nEnter Antecedent and Consequent complexity in the format \"Ant|Cons\":");
+                    System.out.print("> ");
+                    String Complexity = in.next();
 
+                    String[] complexityStrings = Complexity.split("|");
+                    if(complexityStrings.length==3){
+                        anComplexity.add(Integer.parseInt(complexityStrings[0].trim()));
+                        consComplexity.add(Integer.parseInt(complexityStrings[2].trim()));
+                    }else{
+                        //invalid input
+                    }
+
+                    System.out.println("\nSelect Connective types-t or formula format-f?");
+                    System.out.print("> ");
+                    String form = in.next(); 
+
+                    if(form.equalsIgnoreCase("t")){
                         System.out.println("Select Connective types [1, 2, 3, 4, 5]:");
                         System.out.println("1 = disjuntion (||), 2 = conjunction (&), 3 = implication (->), 4 = bi-implication (<->), 5 = mixture");
                         System.out.println("Enter chosen numbers separated by commas:");
                         System.out.print(">");
                         String connectiveTypes = in.next();
-
+                        connectors=connectiveTypes;
+                        
                         String[] connectiveStrings = connectiveTypes.split(",");
                         for (int i = 0; i < connectiveStrings.length; i++){
                             int temp = Integer.parseInt(connectiveStrings[i].trim());
@@ -384,21 +425,29 @@ public class App
                                 connectiveLists[i]=temp;
                             }
                         }
-                
-                    }
-                    else{ anComplexity.add(1); consComplexity.add(1);}
+                   }else{
+                        System.out.println("Enter the preferred format of the formulas, e.g A ~> B & (A || C), enter e to end the process: ");
+                        String format = in.next();
+                        while (!format.equalsIgnoreCase("e")) {
+                            formatList.add(format);
+                            format = in.next();
+                        }
 
-                    System.out.println("Transitivity [y-Yes, n-No, r-Random]:");
+                   }
+            
+
+                    System.out.println("\nTransitivity [y-Yes, n-No, r-Random]:");
                     System.out.print("> ");
                     transitive = in.next();
                     while(!validTransitive(transitive)){
+                        System.out.println("Invalid input.Transitivity [y-Yes, n-No, r-Random]:");
                         transitive = in.next();
                     }
                     transitivity.add(transitive);
 
 
                     ArrayList<String> characterSet = new ArrayList<>();
-                    System.out.println("Enter the character set for the knowledge base [lowerlatin, upperlatin, altlatin, greek]");
+                    System.out.println("\nEnter the character set for the knowledge base [lowerlatin, upperlatin, altlatin, greek]");
                     System.out.println("Greek & altlatin character sets require code page 65001");
                     System.out.println("Can set this in the terminal using 'chcp 65001'");
                     System.out.print("> ");
@@ -412,57 +461,92 @@ public class App
 
                     do{
                         
+                        
                         long startTime = System.nanoTime();
-                        System.out.println("Generating Knowledge Base...");
+                        System.out.println("\nGenerating Knowledge Base...");
 
                         ArrayList<ArrayList<String>> KB = new ArrayList<>();
                         ArrayList<String> atomList = new ArrayList<>();
                         ArrayList<String> usedAtoms = new ArrayList<>();
                     
                         boolean rerun = true;
-                        boolean s = simple;
-                        do{
-                            
-                            ExecutorService executor = Executors.newSingleThreadExecutor();
-                            long timeoutDuration = 2000000000; /// May change 
-                            try{
-                                Callable<ArrayList<ArrayList<String>>> kbGenerationTask = () -> {
-                                        return KBGeneratorThreadedOPT.KBGenerate(defImplicationDistribution, s, anComplexity, consComplexity, connectiveLists, characterSet, transitivity, statements,reuseConsequent);
-                                };
-                                Future<ArrayList<ArrayList<String>>> future = executor.submit(kbGenerationTask);
-                                KB = future.get(timeoutDuration, TimeUnit.MILLISECONDS);
+                        if(form.equalsIgnoreCase("t")){
+                            do{
                                 
-                                usedAtoms=KB.get(KB.size()-1);
-                                KB.remove(usedAtoms);
-                                atomList= KB.get(KB.size()-1);
-                                KB.remove(atomList);
-                                rerun = false;
-                            
-                            }catch(TimeoutException e){
-                                System.out.println("Timeout occurred during KB generation. Retrying...");
-                                executor.shutdownNow();
-                                gen.reset();
-                                rerun = true;
-                            }catch(InterruptedException | ExecutionException e){
+                                ExecutorService executor = Executors.newSingleThreadExecutor();
+                                long timeoutDuration = 2000000000; /// May change 
+                                try{
+                                    Callable<ArrayList<ArrayList<String>>> kbGenerationTask = () -> {
+                                            return KBGeneratorThreadedOPT.KBGenerate(defImplicationDistribution, anComplexity, consComplexity, connectiveLists, characterSet, transitivity, statements,reuseConsequent);
+                                    };
+                                    Future<ArrayList<ArrayList<String>>> future = executor.submit(kbGenerationTask);
+                                    KB = future.get(timeoutDuration, TimeUnit.MILLISECONDS);
+                                    
+                                    usedAtoms=KB.get(KB.size()-1);
+                                    KB.remove(usedAtoms);
+                                    atomList= KB.get(KB.size()-1);
+                                    KB.remove(atomList);
+                                    rerun = false;
+                                
+                                }catch(TimeoutException e){
+                                    System.out.println("Timeout occurred during KB generation. Retrying...");
+                                    executor.shutdownNow();
+                                    gen.reset();
+                                    rerun = true;
+                                }catch(InterruptedException | ExecutionException e){
 
-                            }catch (StackOverflowError  e) {
-                                    e.printStackTrace();
+                                }catch (StackOverflowError  e) {
+                                        e.printStackTrace();
+                            
+                                }finally{
+                                    executor.shutdownNow();
+                                }
+                            }while(rerun == true);
+                        }else{
+                            // will look at it later
+                            do{
+                                
+                                ExecutorService executor = Executors.newSingleThreadExecutor();
+                                long timeoutDuration = 2000000000; /// May change 
+                                try{
+                                    Callable<ArrayList<ArrayList<String>>> kbGenerationTask = () -> {
+                                            return KBGeneratorThreadedOPT.KBGenerate(defImplicationDistribution, anComplexity, consComplexity, connectiveLists, characterSet, transitivity, statements,reuseConsequent);
+                                    };
+                                    Future<ArrayList<ArrayList<String>>> future = executor.submit(kbGenerationTask);
+                                    KB = future.get(timeoutDuration, TimeUnit.MILLISECONDS);
+                                    
+                                    usedAtoms=KB.get(KB.size()-1);
+                                    KB.remove(usedAtoms);
+                                    atomList= KB.get(KB.size()-1);
+                                    KB.remove(atomList);
+                                    rerun = false;
+                                
+                                }catch(TimeoutException e){
+                                    System.out.println("Timeout occurred during KB generation. Retrying...");
+                                    executor.shutdownNow();
+                                    gen.reset();
+                                    rerun = true;
+                                }catch(InterruptedException | ExecutionException e){
+
+                                }catch (StackOverflowError  e) {
+                                        e.printStackTrace();
+                            
+                                }finally{
+                                    executor.shutdownNow();
+                                }
+                            }while(rerun == true);
                         
-                            }finally{
-                                executor.shutdownNow();
-                            }
-                        }while(rerun == true);
-                        
+                        }
                         long endTime = System.nanoTime();
                         long durationInNano = endTime - startTime;
                         double durationInSeconds = (double) durationInNano / 1000000000.0;
 
-                        System.out.println("Save to text file? [y, n]:");
+                        System.out.println("\nSave to text file? [y, n]:");
                         System.out.print("> ");
                         String save = in.next(); // Save the knowledge base to a text file
                         if(save.equalsIgnoreCase("y")){ kbToFile(KB);}
                         
-                        System.out.println("Save in database? [y, n]:");
+                        System.out.println(" Save in database? [y, n]:");
                         System.out.print("> ");
                         String input = in.next(); // Print knowledge base to terminal
                         if(input.equalsIgnoreCase("y")){
@@ -503,6 +587,8 @@ public class App
                             }catch(Exception e){
                                 System.out.println(e.getMessage());
                             }
+
+                            
                         
                         }
 
@@ -515,6 +601,78 @@ public class App
 
                         }
                         
+                        System.out.println("Test using baserank algorithm? [y, n]:");
+                        System.out.print("> ");
+                        String baseR = in.next(); // Print knowledge base to terminal
+                        if(baseR.equalsIgnoreCase("y")){
+                            try{                                                         
+                                PlBeliefSet beliefSet = new PlBeliefSet();
+                                PlBeliefSet classicalSet = new PlBeliefSet();
+                                PlParser parser = new PlParser();
+
+                                // The file is read until the end of file.
+                                for(ArrayList<String> set : KB){
+                                    for (String element : set){
+                                        if (element.isEmpty()) {
+                                            continue;
+                                        }
+                                        if (element.contains("~>")) {
+                                            // the reformatting of the defeasible queries from ~> to =>.
+                                            element = reformatConnectives(reformatDefeasible(element));
+                                        
+                                            // All defeasible implications are added to the defeasible beliefset.
+                                            beliefSet.add((PlFormula) parser.parseFormula(element));
+                                        
+                                        } else {
+                                            // Reformatting of the classical implications of the kb if necessary.
+                                            element = reformatConnectives(element);
+                                            //System.out.println("Reformatted classical: " + stringFormula); // Debugging output
+                                            // All classical implications are added to the classical beliefset.
+                                            // Parse formula from string.
+                                            classicalSet.add((PlFormula) parser.parseFormula(element));
+                                        }
+                                        
+                                    }
+                                }
+                                // BaseRankThreaded object instantiated to allow the base ranking algorithm to run.
+                                BaseRankThreaded.setCkb(classicalSet);
+                                // Ranked knowledge base returned.
+                              
+                                ArrayList<PlBeliefSet> rankedKB = BaseRankThreaded.rank(beliefSet, new PlBeliefSet());
+                               // System.out.println(rankedKB);
+                               /* for(PlBeliefSet i: rankedKB){
+                                    System.out.println(i);
+                                }*/
+
+                                
+                            }catch(Exception e){
+                                e.printStackTrace();
+                            }  
+                         }
+
+
+
+                        // Monte Carlo Results
+                       { /*String directoryPath = "MonteCarloSimulationresults";
+                        File directory = new File(directoryPath);
+                        // Count the number of files starting with "MCSResults_" and ending with ".txt"
+                        String[] files = directory.list((dir, name) -> name.startsWith("MCSResults_") && name.endsWith(".txt"));
+                        int count = (files != null) ? files.length : 0;
+                        count++;
+
+                        String fileName = "MCSResults_" + count+ ".txt";
+                        String filePath = Paths.get(directoryPath, fileName).toString();
+                         
+                        String content = numRanks+"&"+numDefImplications+"&"+distribution+"&"+minStatements+"&"+"&"+reuseConsequent+"&"+transitivity.get(0)+"&"+anComplexity.get(0)+"&"+consComplexity.get(0)+"&"+connectors+"&"+durationInSeconds+"\\\\ \n";
+                        
+                        try (FileWriter fileWriter = new FileWriter(filePath, true);
+                        PrintWriter printWriter = new PrintWriter(fileWriter)) {
+                            // Write the content to the file
+                            printWriter.println(content);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                    }*/}
+
                         gen.reset();
                         System.out.println("Regenerate new knowledge base? [r]:");
                         System.out.println("Change settings? [c]:");
@@ -527,6 +685,7 @@ public class App
                 }
             }
             else{
+
                 System.out.println("Existing Knowledge Base id:");
                 System.out.print("> ");
                 String id = in.next();
@@ -563,10 +722,11 @@ public class App
                         System.out.println("Please enter the number of statements you require, they strictly should be "+minDI+" or more:");
                         numFormula = in.nextInt();
                     }
+                  
 
-                    int[] defImplicationDistribution = Distribution.distributeDIs(numFormula, numRanks, dist);
+                    int[] defImplicationDistribution = Distribution.distributeDIs(numFormula, numRanks, dist, decay);
                     int kbNumFormula = getKBNumberofFormula(kbContent);
-                    int[] oldDistribution = Distribution.distributeDIs(kbNumFormula, kbNumRanks, dist);
+                    int[] oldDistribution = Distribution.distributeDIs(kbNumFormula, kbNumRanks, dist, decay);
                     int[] newDistribution = Distribution.getNewDistribution(defImplicationDistribution, oldDistribution);
 
                     ArrayList<ArrayList<String>> newKB = new ArrayList<>();
@@ -687,6 +847,8 @@ public class App
                         
             }
             }
+       
+            
         }while(choice.equalsIgnoreCase("c"));
         System.out.println("Quitting");
         in.close();
@@ -694,6 +856,21 @@ public class App
     }
 
     // Private helper methods:
+    public static String reformatDefeasible(String formula) {
+        int index = formula.indexOf("~>");
+        formula = "(" + formula.substring(0, index).trim() + ") => (" + formula.substring(index + 2).trim() + ")";
+        return formula;
+    }
+
+     public static String reformatConnectives(String formula) {
+        formula = formula.replaceAll("¬", "!");
+        formula = formula.replaceAll("~", "!");
+        formula = formula.replaceAll("&", "&&");
+        formula = formula.replaceAll("<->", "<=>");
+        formula = formula.replaceAll("->", "=>");
+        return formula;
+    }
+
     private static int getKBNumberofFormula(ArrayList<ArrayList<String>>kbContent){
         int count = 0;
         for (int i = 0; i <kbContent.size();i++){
@@ -809,7 +986,6 @@ public class App
     }
 
 
-
     /**
      * Checks if the input string is a valid distribution type.
      *
@@ -817,7 +993,7 @@ public class App
      * @return True if the input is a valid distribution type, otherwise false.
      */
     private static boolean validDistribution(String input){
-        return input.equalsIgnoreCase("f") || input.equalsIgnoreCase("lg") ||
+        return input.equalsIgnoreCase("f") || input.equalsIgnoreCase("lg") || input.equalsIgnoreCase("eg")|| input.equalsIgnoreCase("ed")||
                input.equalsIgnoreCase("ld") || input.equalsIgnoreCase("r") || input.equalsIgnoreCase("n");
     }
     
@@ -828,8 +1004,8 @@ public class App
      * @return True if the input is a valid number of ranks for said distribution, otherwise false.
      */
     private static boolean withValidRanks(int numRanks, String input){
-        return input.equalsIgnoreCase("n")&& (numRanks > 3) ||input.equalsIgnoreCase("f") || input.equalsIgnoreCase("lg") ||
-        input.equalsIgnoreCase("ld") || input.equalsIgnoreCase("r") ;
+        return input.equalsIgnoreCase("n")&& (numRanks > 3) ||input.equalsIgnoreCase("f") || input.equalsIgnoreCase("lg") || input.equalsIgnoreCase("ed") ||
+        input.equalsIgnoreCase("ld") || input.equalsIgnoreCase("r") || input.equalsIgnoreCase("eg");
     }
    
     /**
@@ -889,6 +1065,12 @@ public class App
             case "n":
                 min =Distribution.minDIsNormal(numRanks);
                 break;
+            case "eg":
+                min = Distribution.minDIsExp(numRanks);
+                break;
+            case "ed":
+                min = Distribution.minDIsExp(numRanks);
+                break;
         }
         return min;
     }
@@ -941,3 +1123,13 @@ public class App
         }
     }
 }
+
+
+
+
+
+
+
+
+
+

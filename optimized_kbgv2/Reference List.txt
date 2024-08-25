@@ -1,3 +1,0 @@
-Matthias Thimm. Tweety - A Comprehensive Collection of Java Libraries for Logical Aspects of Artificial Intelligence and Knowledge Representation. In Proceedings of the 14th International Conference on Principles of Knowledge Representation and Reasoning (KR'14). Vienna, July, 2014. bibtex pdf
-
-Matthias Thimm. The Tweety Library Collection for Logical Aspects of Artificial Intelligence and Knowledge Representation. In Künstliche Intelligenz, 31(1):93-97, March 2017. bibtex pdf

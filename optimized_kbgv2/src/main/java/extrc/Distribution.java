@@ -1,12 +1,15 @@
 package extrc;
 
 import java.util.Arrays;
+import java.util.Random;
 import java.lang.Math;
 
 /**
  * The Distribution class provides methods for calculating the distribution of defeasible implications (DIs) over ranks.
  */
 public class Distribution{
+
+
 
     /**
      * Controls the distribution calculation for DIs over the ranks based on the specified distribution type.
@@ -16,7 +19,7 @@ public class Distribution{
      * @param distribution The type of distribution to calculate (f: flat, lg: linear growth, ld: linear decline, r: random).
      * @return An array representing the calculated distribution of DIs over the ranks.
      */
-    public static int[] distributeDIs(int numDIs, int numRanks, String distribution){
+    public static int[] distributeDIs(int numDIs, int numRanks, String distribution, double decayFactor){
         int[] ranks = new int[numRanks];
 
         switch (distribution){
@@ -35,10 +38,16 @@ public class Distribution{
             case "n":
                 distributeNormal(numDIs, numRanks, ranks);
                 break;
+            case "eg":
+                distributeDIsExpDecline(numDIs, numRanks, ranks);  
+                break;
+            case "ed":
+                distributeDIsExpIncline(numDIs, numRanks, ranks);
+                break;
         }
         return ranks;
     }
-
+    
     /**
      * Calculates a flat distribution of DIs over the ranks.
      *
@@ -261,6 +270,71 @@ public class Distribution{
             x++;
         }
         return sum;
+    }
+
+    /**
+     * Calculates the minimum number of DIs needed for a exp-decline distribution.
+     *
+     * @param numRanks The number of ranks over which DIs are distributed.
+     * @return The minimum number of DIs needed for a exp-decline distribution.
+     */
+    public static int minDIsExp(int numRanks){
+        Random random = new Random();
+        int sum = 0;
+        double decayFactor = 1.2;
+        //setDecayFactor(decayFactor);
+        for (int i = 0; i < numRanks; i++) {
+            int DIsAtRank = (int) Math.round( Math.pow(decayFactor, i));
+            sum += DIsAtRank;
+        }
+        System.out.println(sum);
+        return sum;
+    }
+
+    public static void distributeDIsExpDecline(int numDIs, int numRanks, int[] ranks ){
+
+        int assignedDIs = 0;
+        for (int i = 0; i < numRanks; i++) {
+            int DIsAtRank = (int) Math.round(Math.pow(numDIs, (i-1)/(numRanks-1)));
+            //(decayFactor, (i-1)/(numRanks-1)
+            ranks[i] = DIsAtRank;
+            assignedDIs = assignedDIs + DIsAtRank;
+        }
+        
+        // Check if all numDIs are assigned and assign if not
+        int index = 0;
+        while(assignedDIs<numDIs){
+            ranks[index]= ranks[index]+1;
+            assignedDIs++;
+            index++;
+            if(index==ranks.length){
+                index = 0;
+            }
+        }
+
+    }
+
+    public static void distributeDIsExpIncline(int numDIs, int numRanks, int[] ranks){
+        int assignedDIs = 0;
+        int pointer = numRanks-1;
+        for (int i = 0; i < numRanks; i++) {
+            int DIsAtRank = (int) Math.round(Math.pow(numDIs, (i-1)/(numRanks-1)));
+            ranks[pointer] = DIsAtRank;
+            pointer--;
+            assignedDIs = assignedDIs + DIsAtRank;
+        }
+        
+        // Check if all numDIs are assigned and assign if not
+        int index = numRanks-1;
+        while(assignedDIs<numDIs){
+            ranks[index] = ranks[index] + 1;
+            assignedDIs++;
+            index--;
+            if(index==0){
+                index =  numRanks-1;
+            }
+        }
+
     }
 
 }

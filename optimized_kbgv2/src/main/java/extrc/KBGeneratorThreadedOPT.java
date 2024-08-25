@@ -15,7 +15,6 @@ import org.tweetyproject.arg.bipolar.examples.admissibleExample;
 public class KBGeneratorThreadedOPT{
 
     private static AtomCreation makeAtom = AtomCreation.getInstance();
-    //private static int numThreads = Runtime.getRuntime().availableProcessors();
     private static ArrayList<String> atomList = new ArrayList<>();
     private static Connective con = new Connective(); 
     private static Random random = new Random();
@@ -36,11 +35,11 @@ public class KBGeneratorThreadedOPT{
      * @param transitivity  The degree of transitivity within the statements.
      * @return A ArrayList<ArrayList<String>> representing the generated KB.
      */
-    public static ArrayList<ArrayList<String>> KBGenerate(int[] DiDistribution, boolean simpleOnly, ArrayList<Integer> complexityAnt, ArrayList<Integer> complexityCon, int[] connectives, ArrayList<String> characterSet,  ArrayList<String> transitivity, ArrayList<Integer> numStatements, boolean reuseConsequent){      
+    public static ArrayList<ArrayList<String>> KBGenerate(int[] DiDistribution, ArrayList<Integer> complexityAnt, ArrayList<Integer> complexityCon, int[] connectives, ArrayList<String> characterSet,  ArrayList<String> transitivity, ArrayList<Integer> numStatements, boolean reuseConsequent){      
         // selecting character set
         makeAtom.setCharacters(characterSet.get(0));
 
-        //preparing connectives
+        // preparing connectives
         ArrayList<Integer> connectiveType = new ArrayList<>();
         ArrayList<Integer> infinityConnectiveType = new ArrayList<>();
 
@@ -55,24 +54,19 @@ public class KBGeneratorThreadedOPT{
 
             }
         }
-      //  System.out.println(connectiveType);
-       // System.out.println(infinityConnectiveType);
         
-        
-        
-        //Antecedent Complexity
+        // Antecedent Complexity
         int anteComplexity = complexityAnt.get(0);
-        int consComplexity = complexityCon.get(0);
-        System.out.println(anteComplexity+"|"+consComplexity);
-       
+        int consComplexity = complexityCon.get(0);       
        
         // generating atoms
         int numAtoms = 0;
         if( anteComplexity==1 && consComplexity ==1){
-            numAtoms =  (DiDistribution.length + 1) + ((numStatements.get(0) -(DiDistribution.length * 2 - 1)));
+            numAtoms =  (DiDistribution.length + 1) + ((numStatements.get(0)+numStatements.get(1) -(DiDistribution.length * 2 - 1)));
         }else{
-            numAtoms = (DiDistribution.length + 1) + ((numStatements.get(0) -(DiDistribution.length * 2 - 1))/3);
+            numAtoms = (DiDistribution.length + 1) + ((numStatements.get(0) + numStatements.get(1) -(DiDistribution.length * 2 - 1))/3);
         }
+        
         int NumAtoms = numAtoms;
         atomList.clear();
       
@@ -80,7 +74,6 @@ public class KBGeneratorThreadedOPT{
             makeAtom.newGenerateAtom(NumAtoms, atomList);
             return null;
         };
-
 
         // generating statements per rank
         ArrayList<ArrayList<String>> KnowledgeB = new ArrayList<>();
@@ -90,7 +83,8 @@ public class KBGeneratorThreadedOPT{
         for (int i = 0; i < generateDIsCompletionStatus.length; i++) {
             generateDIsCompletionStatus[i] = new AtomicBoolean(false);
         }
-
+ 
+       
         Callable<Void> generateDIs = () -> {
             //Knowledge base entry
             ArrayList<String> entry;
@@ -103,8 +97,10 @@ public class KBGeneratorThreadedOPT{
                 int defRanks = 0;
                 if(infinityConnectiveType.size()==0){defRanks=DiDistribution.length;}
                 else{defRanks=DiDistribution.length-1;}
-
+                
+                int count = 0;
                 for(int i=0; i<defRanks;i++){
+
                     while (atomList.size() < anteComplexity || atomList.size() <consComplexity) { 
                         // Wait for creation of atoms to complete index i
                     }
@@ -114,16 +110,19 @@ public class KBGeneratorThreadedOPT{
                             atom = getFormula(anteComplexity, atomList, connectiveType);
                         } while (usedAtoms.contains(atom));
                         usedAtoms.add(atom);
+                        atomList.remove(atom);
                     
                         do{
                             conflictAtom = getFormula(anteComplexity, atomList, connectiveType); 
                         } while (usedAtoms.contains(conflictAtom));
                         usedAtoms.add(conflictAtom);
+                        atomList.remove(conflictAtom);
                     
                         do{
                             contrConsequent = getFormula(consComplexity, atomList, connectiveType); 
                         } while (usedAtoms.contains(contrConsequent));
                         usedAtoms.add(contrConsequent);
+                        atomList.remove(contrConsequent);
                         
 
                         entry = new ArrayList<>();
@@ -131,13 +130,14 @@ public class KBGeneratorThreadedOPT{
                         DiDistribution[i]-=1;
                         KnowledgeB.add(entry);
                         generateDIsCompletionStatus[i].set(true); ///
-
+                        
                         entry =new ArrayList<>();
                         entry.add(conflictAtom+" "+con.getDISymbol()+" "+con.getNegationSymbol()+contrConsequent);
                         entry.add(conflictAtom+" "+con.getDISymbol()+" "+atom);
                         DiDistribution[i+1]-=2; 
                         KnowledgeB.add(entry);
                         generateDIsCompletionStatus[i+1].set(true); ///
+                        count=count+3;
 
                         atom=conflictAtom;
                         
@@ -149,15 +149,18 @@ public class KBGeneratorThreadedOPT{
                                         conflictAtom = getFormula(anteComplexity, atomList, connectiveType);
                                     }while (usedAtoms.contains(conflictAtom));
                                     usedAtoms.add(conflictAtom);
+                                    atomList.remove(conflictAtom);
 
                                     entry.add(conflictAtom+" "+con.getDISymbol()+" "+con.getNegationSymbol()+contrConsequent);
                                     entry.add(conflictAtom+" "+con.getDISymbol()+" "+atom);
-                                
+                                    count=count+2;
+
                                     DiDistribution[i+1]-=2;
                                     KnowledgeB.add(entry);
 
                                     atom=conflictAtom; 
                                     generateDIsCompletionStatus[i+1].set(true); ///
+                                   
                                 }
                             }else{
 
@@ -167,22 +170,26 @@ public class KBGeneratorThreadedOPT{
                                         conflictAtom = getFormula(anteComplexity, atomList, connectiveType);
                                     }while (usedAtoms.contains(conflictAtom));
                                     usedAtoms.add(conflictAtom);
+                                    atomList.remove(conflictAtom);
 
                                     entry.add(conflictAtom+" "+con.getDISymbol()+" "+contrConsequent);
                                     entry.add(conflictAtom+" "+con.getDISymbol()+" "+atom);
-                                    
+                                    count=count+2;
+
                                     DiDistribution[i+1]-=2; 
                                     KnowledgeB.add(entry);
 
                                     atom=conflictAtom;
                                     generateDIsCompletionStatus[i+1].set(true); ///
+                                    
                                 }
                             }
                             
                     }
-                        
+                   
+                   showProgress(count, numStatements.get(0));
                 }
-               
+              
             }
             return null;
         };
@@ -190,15 +197,16 @@ public class KBGeneratorThreadedOPT{
         String transitiveStatements = transitivity.get(0);
 
         Callable<Void> generateOtherformulas = () -> {
-            if(notALL(DiDistribution)){
+           if(notALL(DiDistribution)){
                 String currAtom;
                 String consequent="";
+                String antecedent="";
                 int ran = 0;
+                int completed = DiDistribution.length*2 - 1;
                 synchronized (lock) {
                     int defRanks = 0;
-                    if(infinityConnectiveType.size()==0){defRanks=DiDistribution.length;}
-                    else{defRanks=DiDistribution.length-1;}
-                    for(int i=0; i<defRanks;i++){
+                    
+                    for(int i=0; i<DiDistribution.length;i++){
                         
                         while (!generateDIsCompletionStatus[i].get()) {
                             //Wait
@@ -207,24 +215,36 @@ public class KBGeneratorThreadedOPT{
                         String[] formula = (KnowledgeB.get(i).get(0)).split(" ");
                         currAtom = formula[0];
                         int index =0;
+                        int count= 0;
 
                         while(DiDistribution[i]>0){
                             index++;
                             if (transitiveStatements.equalsIgnoreCase("n")){
-                                consequent = getFormula(consComplexity, atomList, connectiveType);
+                                antecedent = getFormula(consComplexity, atomList, connectiveType);
                                 if(!reuseConsequent){atomList.remove((String)consequent);}
                                 usedAtoms.add(consequent);
-                                KnowledgeB.get(i).add(currAtom+" "+con.getDISymbol()+" "+consequent);
+                                KnowledgeB.get(i).add(antecedent+" "+con.getDISymbol()+" "+currAtom);
                                 DiDistribution[i]--;
+                                completed++;
+                                
                             }else if(transitiveStatements.equalsIgnoreCase("y")){
-                                if(index>1){
-                                    currAtom = consequent;
+                               
+                                if(count==0 ){
+                                    consequent = getFormula(consComplexity, atomList, connectiveType); 
+                                    if(!reuseConsequent){atomList.remove((String)consequent);}
+                                    usedAtoms.add(consequent);
+                                    KnowledgeB.get(i).add(currAtom+" "+con.getDISymbol()+" "+consequent);
+                                    DiDistribution[i]--;
+                                    completed++;
+                                    count++;
+                                }else{
+                                    KnowledgeB.get(i).add(consequent+" "+con.getDISymbol()+" "+currAtom);
+                                    DiDistribution[i]--;
+                                    completed++;
+                                    count=0;
+
                                 }
-                                consequent = getFormula(consComplexity, atomList, connectiveType); 
-                                if(!reuseConsequent){atomList.remove((String)consequent);}
-                                usedAtoms.add(consequent);
-                                KnowledgeB.get(i).add(currAtom+" "+con.getDISymbol()+" "+consequent);
-                                DiDistribution[i]--;
+                            
                                 
                             }else{
                                 if(index>1){
@@ -240,17 +260,18 @@ public class KBGeneratorThreadedOPT{
                                 usedAtoms.add(consequent);
                                 KnowledgeB.get(i).add(currAtom+" "+con.getDISymbol()+" "+consequent);
                                 DiDistribution[i]--;
+                                completed++;
                             }
-                        
+                            showProgress(completed, (numStatements.get(0)+ numStatements.get(1)));
                         }   
                         
                     }
-                    if(infinityConnectiveType.size()>0){
+                    if(numStatements.get(1)>0){
                         currAtom = getFormula(anteComplexity, atomList, connectiveType);
                         int index = 0;
                         ArrayList<String> entry = new ArrayList<>();
 
-                        while(DiDistribution[defRanks]>0){
+                        while(index<numStatements.get(1)){
                             index++;
                             if (transitiveStatements.equalsIgnoreCase("n")){
                                 consequent = getFormula(consComplexity, atomList, connectiveType);
@@ -283,9 +304,10 @@ public class KBGeneratorThreadedOPT{
                                 entry.add(currAtom+" "+getOperator(infinityConnectiveType)+" "+consequent);
                                 DiDistribution[defRanks]--;
                             }
-                        
+                            //showProgress(completed+index, (numStatements.get(0)+ numStatements.get(1))); 
                         }   
                         KnowledgeB.add(entry);
+                        
                         
                     }
                 } 
@@ -566,7 +588,7 @@ public class KBGeneratorThreadedOPT{
         String formula = "";
 
         for(int i = 0; i< anteComplexity; i++){
-            if(anteComplexity==1){try {Thread.sleep(1);} catch (InterruptedException e) { e.printStackTrace();}}
+            if(anteComplexity==1){try {Thread.sleep(2);} catch (InterruptedException e) { e.printStackTrace();}}
             formula = formula + atomList.get(1+random.nextInt(atomList.size()-1));
     
             if(i<anteComplexity-1)
@@ -618,5 +640,20 @@ public class KBGeneratorThreadedOPT{
       return allFormulasCreated;
     }
 
+    public static void showProgress(int completed, int total) {
+        int progress = (int) ((completed / (double) total) * 100);
+        StringBuilder progressBar = new StringBuilder("[");
+        int completedBars = progress / 5; // Assuming the progress bar is 20 characters wide
+        for (int i = 0; i < 20; i++) {
+            if (i < completedBars) {
+                progressBar.append("=");
+            } else {
+                progressBar.append(" ");
+            }
+        }
+        progressBar.append("] ").append(progress).append("% Complete");
+        System.out.print("\r" + progressBar.toString());
+    }
+    
 }
 

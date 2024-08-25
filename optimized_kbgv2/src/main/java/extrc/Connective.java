@@ -22,7 +22,7 @@ public class Connective {
      * - Disjunction: "||" (logical OR)
      * - Implication: "=>" (logical implication)
      * - Bi-Implication: "<=>" (logical bi-implication)
-     * - Negation: "\u00AC" (logical NOT)
+     * - Negation: "\u00AC" (logical NOT) or !
      */
     public Connective() {
         // Default symbols
@@ -31,7 +31,7 @@ public class Connective {
         disjunctionSymbol = "||";
         implicationSymbol = "->";
         biImplicationSymbol = "<->";
-        negationSymbol = "\u00AC";
+        negationSymbol = "!";
     }
 
     /**
@@ -55,7 +55,7 @@ public class Connective {
         disjunctionSymbol = "||";
         implicationSymbol = "->";
         biImplicationSymbol = "<->";
-        negationSymbol = "\u00AC";
+        negationSymbol = "!";
     }
  
     /**

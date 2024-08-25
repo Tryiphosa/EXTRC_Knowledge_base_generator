@@ -1,0 +1,10 @@
+i ~> j
+b ~> i
+g ~> i
+b ~> i
+h ~> i
+d ~> !j
+d ~> i
+g ~> d
+g ~> d
+c ~> d
