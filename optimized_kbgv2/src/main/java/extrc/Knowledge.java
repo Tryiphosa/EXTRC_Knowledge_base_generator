@@ -1,8 +1,7 @@
 package extrc;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.LinkedHashSet;
-import java.util.List;
+
 
 public class Knowledge {
     private ArrayList<String> usedAtoms;
@@ -18,9 +17,12 @@ public class Knowledge {
     private String charSet;
     private String transitivity;
     private boolean reuseConsequent;
+    private String ratio;
+    private int min;
+    private String complexity;
 
     // Constructors...
-    public Knowledge( ArrayList<String>  content, 
+   /* public Knowledge( ArrayList<String>  content, 
                      Date creationDate, int numberOfRanks, String generatorName, double generationSpeed,String distribution, int num, String charSet,int[] connectType) {
         this.content = content;  // Defeasible knowledge base
         this.creationDate = creationDate;
@@ -33,8 +35,8 @@ public class Knowledge {
         this.charSet=charSet;
        
     }
-
-    public Knowledge(ArrayList<String> content, Date creationDate, int numberOfRanks, String generatorName, double speed,ArrayList<String> usedAtoms, ArrayList<String> AtomList, String distribution, int num, String charSet,int[] connectType, String transitivity,boolean reuseConsequent) {
+*/
+    public Knowledge(ArrayList<String> content, Date creationDate, int numberOfRanks, String generatorName, double speed,ArrayList<String> usedAtoms, ArrayList<String> AtomList, String distribution, int num, String charSet,int[] connectType, String transitivity,boolean reuseConsequent, String ratio, int min,String complexity) {
         this.content = content;  // Defeasible knowledge base
         this.creationDate = creationDate;
         this.numberOfRanks = numberOfRanks;
@@ -48,10 +50,30 @@ public class Knowledge {
         this.charSet=charSet;
         this.transitivity=transitivity;
         this.reuseConsequent=reuseConsequent;
+        this.ratio=ratio;
+        this.min=min;
+        this.complexity=complexity;
     }
 
-    
     // Getters and setters
+    public String getComplexity() {
+        return complexity;
+    }
+    public void setComplexity(String complexity) {
+        this.complexity=complexity;
+    }
+    public int getMin() {
+        return min;
+    }
+    public void setMin(int min) {
+        this.min=min;
+    }
+    public String getRatio() {
+        return ratio;
+    }
+    public void setRatio(String ratio) {
+        this.ratio=ratio;
+    }
     public boolean getReuseConsequent() {
         return reuseConsequent;
     }

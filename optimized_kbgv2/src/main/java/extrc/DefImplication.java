@@ -19,41 +19,6 @@ public class DefImplication {
         this.consequent = cons;
     }
 
-    /**
-     * Checks if an atom is included in the defeasible implication's consequent.
-     *
-     * @param defImp The defeasible implication to check.
-     * @param atom   The atom to check for inclusion.
-     * @return true if the atom is included in the consequent, false otherwise.
-     */
-    public static boolean checkConsequent(DefImplication defImp, Atom atom) {
-        boolean val;
-        String[] defImpSplit = defImp.toString().split(con.getDISymbol(), 2);
-        if (defImpSplit[1].contains(atom.toString())) {
-            val = true;
-        } else {
-            val = false;
-        }
-        return val;
-    }
-
-    /**
-     * Checks if an atom is included in the defeasible implication's antecedent.
-     *
-     * @param defImp The defeasible implication to check.
-     * @param atom   The atom to check for inclusion.
-     * @return true if the atom is included in the antecedent, false otherwise.
-     */
-    public static boolean checkAntecedent(DefImplication defImp, Atom atom) {
-        boolean val;
-        String[] defImpSplit = defImp.toString().split(con.getDISymbol(), 2);
-        if (defImpSplit[0].contains(atom.toString())) {
-            val = true;
-        } else {
-            val = false;
-        }
-        return val;
-    }
 
     /**
      * Sets the antecedent of a defeasible implication.

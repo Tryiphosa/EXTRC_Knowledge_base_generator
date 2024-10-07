@@ -19,7 +19,7 @@ public class Distribution{
      * @param distribution The type of distribution to calculate (f: flat, lg: linear growth, ld: linear decline, r: random).
      * @return An array representing the calculated distribution of DIs over the ranks.
      */
-    public static int[] distributeDIs(int numDIs, int numRanks, String distribution, double decayFactor){
+    public static int[] distributeDIs(int numDIs, int numRanks, String distribution, int min){
         int[] ranks = new int[numRanks];
 
         switch (distribution){
@@ -33,10 +33,10 @@ public class Distribution{
                 distributeLinearDecline(numDIs, numRanks, ranks);
                 break;
             case "r":
-                distributeRandom(numDIs, numRanks, ranks);
+                distributeRandom(numDIs, numRanks, ranks, min);
                 break;
             case "n":
-                distributeNormal(numDIs, numRanks, ranks);
+                distributeNormal(numDIs, numRanks, ranks, min);
                 break;
             case "eg":
                 distributeDIsExpDecline(numDIs, numRanks, ranks);  
@@ -140,9 +140,10 @@ public class Distribution{
      * @param numRanks The number of ranks over which DIs are distributed.
      * @param ranks    An array to store the calculated distribution of DIs.
      */
-    private static void distributeRandom(int numDIs, int numRanks, int[] ranks){
+    private static void distributeRandom(int numDIs, int numRanks, int[] ranks, int min){
         int remainingDIs = numDIs - numRanks * 2;
-        Arrays.fill(ranks, 2);
+        if(min <2){Arrays.fill(ranks, 2);}
+        else{Arrays.fill(ranks, min);}
 
         while(remainingDIs > 0){
             int i = (int)(Math.random() * ranks.length);
@@ -158,69 +159,66 @@ public class Distribution{
      * @param numRanks The number of ranks over which DIs are distributed.
      * @param ranks    An array to store the calculated distribution of DIs.
      */
-    private static void distributeNormal(int numDIs, int numRanks, int[] ranks) {
-        int numberOfIntervals = numRanks;
-        double[] intervals = new double[numberOfIntervals];
-        
-        double mean = (numberOfIntervals - 1) / 2.0;
-        double stdDev = numberOfIntervals / 6.0; // Approximation for covering 99.7% in 6 standard deviations
-        
-        // Generate values using the normal distribution
-        double sum = 0.0;
-        for (int i = 0; i < numberOfIntervals; i++) {
-            double z = (i - mean) / stdDev;
-            intervals[i] = Math.exp(-0.5 * z * z); // Normal distribution formula
-            sum += intervals[i];
+    private static void distributeNormal(int numDIs, int numRanks, int[] ranks, int min) {
+        int start=0;
+        int end=numRanks;
+        int mul = 1;
+
+        while (start<= end){
+            for (int i = start; i < end;i++){
+                ranks[i]=ranks[i]+mul;
+                numDIs=numDIs-mul;
+            }
+            start++;
+            end--;
+            mul++;
         }
-    
-        // Normalize the values so that their total sum matches the given total sum
-        double totalIntervals = 0.0;
-        for (int i = 0; i < numberOfIntervals; i++) {
-            intervals[i] = (intervals[i] / sum) * numDIs;
-            totalIntervals += intervals[i];
+        while (numDIs> min*numRanks) {
+            int newStart=0;
+            int newEnd=numRanks;
+            int count=0;
+            mul = 1;
+            while (newStart<= newEnd){
+                for (int i = newStart; i < newEnd;i++){
+                    if(numDIs> min*numRanks && numDIs>=mul){
+                        ranks[i]=ranks[i]+mul;
+                        numDIs=numDIs-mul;
+                    }
+                }
+                count++;
+                newStart++;
+                newEnd--;
+                if(count==2){
+                    mul++;
+                    count=0;
+                }
+            }
         }
-    
-        // Adjust rounding to ensure total sum is exact
-        int totalSum = 0;
-        for (int i = 0; i < numberOfIntervals; i++) {
-            ranks[i] = (int) Math.round(intervals[i]);
-            totalSum += ranks[i];
-        }
-    
-        // Adjust the last element to ensure the total sum is correct
-        if (totalSum != numDIs) {
-            ranks[numberOfIntervals - 1] += (numDIs - totalSum);
+        for(int i = 0; i<ranks.length; i++){
+            ranks[i] = ranks[i]+min;
         }
     }
-
+    
+  
     /**
      * Calculates the minimum number of DIs needed for a normal distribution.
      *
      * @param numRanks The number of ranks over which DIs are distributed.
      * @return The minimum number of DIs needed for a normal distribution.
      */
-    public static int minDIsNormal(int numRanks) {
+    public static int minDIsNormal(int numRanks, int min) {
         int sum = 0;
-        boolean odd = numRanks % 2 != 0; 
-        int center;
-    
-        // Calculate the center index
-        if (odd) {
-            center = numRanks / 2 + 1;
-        } else {
-            center = numRanks / 2;
+        int subtractor = 0;
+        int mul = 1;
+
+        while(numRanks-subtractor >= 1){
+            //System.out.println(sum+":"+mul+"::"+subtractor);
+            sum = sum + (numRanks-subtractor)*mul;
+            subtractor=subtractor+2;
+            mul++;
         }
-    
-        // Calculate one-third of the center rank
-        int oneThirdRank = center / 3;
-    
-        // This function should be defined elsewhere in your code
-        int oneThirdDIs = oneThirdRank*2;
-    
-        // Assuming minDIsLinear returns a value in the range needed, and applying the scaling
-        sum = (oneThirdDIs * 100) / 5; 
-    
-        return sum + 2*numRanks;
+
+        return  sum + min*numRanks;
     }
 
     /**
@@ -251,8 +249,9 @@ public class Distribution{
      * @param numRanks The number of ranks over which DIs are distributed.
      * @return The minimum number of DIs needed for a linear-growth distribution.
      */
-    public static int minDIsLinear(int numRanks){
-        int sum = numRanks * (numRanks + 1) / 2;
+    public static int minDIsLinear(int numRanks, int min){
+       // int sum = numRanks * (numRanks + 1) / 2;
+        int sum = numRanks * (2 * (min + 1) + (numRanks - 1)) / 2;
         return sum;
     }
 
@@ -262,10 +261,11 @@ public class Distribution{
      * @param numRanks The number of ranks over which DIs are distributed.
      * @return The minimum number of DIs needed for a linear-decline distribution.
      */
-    public static int minDIsLinearDecline(int numRanks){
+    public static int minDIsLinearDecline(int numRanks,int min){
         int sum = 0;
         int x = 2;
         for(int i = 0; i < numRanks; i++){
+            if(x<min){x=min;}
             sum += (x);
             x++;
         }
@@ -278,16 +278,17 @@ public class Distribution{
      * @param numRanks The number of ranks over which DIs are distributed.
      * @return The minimum number of DIs needed for a exp-decline distribution.
      */
-    public static int minDIsExp(int numRanks){
+    public static int minDIsExp(int numRanks,int min){
         Random random = new Random();
         int sum = 0;
         double decayFactor = 1.2;
         //setDecayFactor(decayFactor);
         for (int i = 0; i < numRanks; i++) {
             int DIsAtRank = (int) Math.round( Math.pow(decayFactor, i));
+            if(DIsAtRank<min){DIsAtRank=min;}
             sum += DIsAtRank;
         }
-        System.out.println(sum);
+      //  System.out.println(sum);
         return sum;
     }
 
@@ -315,25 +316,17 @@ public class Distribution{
     }
 
     public static void distributeDIsExpIncline(int numDIs, int numRanks, int[] ranks){
-        int assignedDIs = 0;
-        int pointer = numRanks-1;
-        for (int i = 0; i < numRanks; i++) {
-            int DIsAtRank = (int) Math.round(Math.pow(numDIs, (i-1)/(numRanks-1)));
-            ranks[pointer] = DIsAtRank;
-            pointer--;
-            assignedDIs = assignedDIs + DIsAtRank;
+ 
+        distributeDIsExpDecline(numDIs, numRanks, ranks);
+        int[] tempRank = new int[ranks.length];
+        for(int i = 0; i < tempRank.length ; i++ ){
+            tempRank[i] = ranks[(tempRank.length-1)-i];
         }
-        
-        // Check if all numDIs are assigned and assign if not
-        int index = numRanks-1;
-        while(assignedDIs<numDIs){
-            ranks[index] = ranks[index] + 1;
-            assignedDIs++;
-            index--;
-            if(index==0){
-                index =  numRanks-1;
-            }
+
+        for (int j = 0; j < tempRank.length ; j++ ){
+            ranks[j] = tempRank[j];
         }
+
 
     }
 

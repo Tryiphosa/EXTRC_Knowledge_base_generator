@@ -1,6 +1,7 @@
 package extrc;
 import com.mongodb.MongoWriteException;
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Updates;
@@ -71,7 +72,11 @@ public class KnowledgeDAO {
                 .append("characterSet", knowledge.getCharSet())
                 .append("connectors", connectList)
                 .append("transitivity", knowledge.getTransitivity())
-                .append("reuseConsequent", knowledge.getReuseConsequent());
+                .append("reuseConsequent", knowledge.getReuseConsequent())
+                .append("ratio", knowledge.getRatio())
+                .append("min", knowledge.getMin())
+                .append("complexity", knowledge.getComplexity());
+                
     
                 collection.insertOne(doc);
                 return true;
@@ -105,6 +110,10 @@ public class KnowledgeDAO {
                     .toArray();
                 String trans = doc.getString("transitivity");
                 boolean reuseCons = doc.getBoolean("reuseConsequent");
+                String ratio = doc.getString("ratio");
+                int min = doc.getInteger("min");
+                String complexity = doc.getString("complexity");
+
 
                 return new Knowledge(
                     content,
@@ -119,7 +128,10 @@ public class KnowledgeDAO {
                     charSet,
                     conType,
                     trans,
-                    reuseCons
+                    reuseCons,
+                    ratio,
+                    min,
+                    complexity
                 );
             }
         } catch (Exception e) {
@@ -127,6 +139,46 @@ public class KnowledgeDAO {
         }
         return null;
     }
+    
+    public ArrayList<String> displayAllKnowledgeWithIds() {
+        ArrayList<String> reusableKBs = new ArrayList<>();
+        try (MongoCursor<Document> cursor = collection.find().iterator()) {
+            while (cursor.hasNext()) {
+                Document doc = cursor.next();
+                // Extract _id (ObjectId)
+                ObjectId objectId = doc.getObjectId("_id");
+                String id = objectId.toHexString();
+
+                int numberOfRanks = doc.getInteger("numberOfRanks");
+                String generatorName = doc.getString("generatorName");
+                String distribution = doc.getString("distribution");
+                int num = doc.getInteger("num");
+                String charSet = doc.getString("characterSet");
+    
+                List<Integer> intList = doc.getList("connectors", Integer.class);
+                String conType  = "";
+                for( int x =0; x <intList.size();x++){
+                    conType+=x;
+                    if(x<intList.size()-1){conType+=",";}
+                }
+
+                String trans = doc.getString("transitivity");
+                boolean isTransitive = "y".equals(trans) ? true : false;                 
+                boolean reuseCons = doc.getBoolean("reuseConsequent");
+
+                String ratio = doc.getString("ratio");
+                int min = doc.getInteger("min");
+                String complexity = doc.getString("complexity");
+    
+                // combine the data and store in array.
+                String info="ID: " + id+"\nNumber of Ranks: "+numberOfRanks+"\nNumber of DIs: "+num+"\nGenerator Type: "+generatorName+"\nDistribution: " + distribution+"\nRatio: "+ratio+"\nComplexity: "+complexity+"\nMin statements per rank: "+min+"\nCharacter set: " + charSet+"\nConnectives: " + conType+"\nReuse Consequent: "+ reuseCons+"\nTransitivity: " + isTransitive+"\n_______________________________________________________";
+                reusableKBs.add(info);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return reusableKBs;
+    } 
     
     // updating...
     public Boolean updateKnowledgeOV2(String id, Knowledge knowledge) {
@@ -148,7 +200,11 @@ public class KnowledgeDAO {
                 Updates.set("characterSet", knowledge.getCharSet()),
                 Updates.set("connectors", connectList),
                 Updates.set("transitivity", knowledge.getTransitivity()),
-                Updates.set("reuseConsequent", knowledge.getReuseConsequent())
+                Updates.set("reuseConsequent", knowledge.getReuseConsequent()),
+                Updates.set("ratio", knowledge.getRatio()),
+                Updates.set("min", knowledge.getMin()),
+                Updates.set("complexity",knowledge.getComplexity())
+                
             );
             collection.updateOne(filter, update);
             return true;

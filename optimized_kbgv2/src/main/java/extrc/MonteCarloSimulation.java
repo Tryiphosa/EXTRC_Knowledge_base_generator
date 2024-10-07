@@ -33,11 +33,13 @@ public class MonteCarloSimulation {
             String characterSet = getRandomCharacterSet(random);
 
             // Generate text files.
-            String OUTPUT_FILE = "MonteCarloSimulation/"+generatorType+"_"+(i+1)+".txt"; // File to store results
+            String OUTPUT_FILE = "Monte/"+generatorType+"_"+(i+1)+".txt"; 
 
             try (BufferedWriter fileWriter = new BufferedWriter(new FileWriter(OUTPUT_FILE))) { 
             // Save the generated data to a text file
                 fileWriter.write(generatorType);
+                fileWriter.newLine();
+                fileWriter.write("0:1");
                 fileWriter.newLine();
                 fileWriter.write(Integer.toString(numRanks));
                 fileWriter.newLine();
@@ -47,16 +49,12 @@ public class MonteCarloSimulation {
                 fileWriter.newLine();
                 fileWriter.write(Integer.toString(minStatementsPerRank));
                 fileWriter.newLine();
-                fileWriter.write(simpleDefImplications);
-                fileWriter.newLine();
                 fileWriter.write(reuseConsequent);
                 fileWriter.newLine();
-                if(simpleDefImplications.equalsIgnoreCase("n")){
-                    fileWriter.write(complexity);
-                    fileWriter.newLine();
-                    fileWriter.write(connectiveTypes);
-                    fileWriter.newLine();
-                }
+                fileWriter.write(complexity);
+                fileWriter.newLine();
+                fileWriter.write(connectiveTypes);
+                fileWriter.newLine();
                 fileWriter.write(transitivity);
                 fileWriter.newLine();
                 fileWriter.write(characterSet);
@@ -67,10 +65,12 @@ public class MonteCarloSimulation {
                 fileWriter.newLine();
                 fileWriter.write("n");
                 fileWriter.newLine();
+                fileWriter.write("n");
+                fileWriter.newLine();
                 fileWriter.write("q");
                 fileWriter.newLine(); // Add an empty line between simulations
                 fileWriter.flush(); // Ensure data is written to the file
-                
+
                 } catch (IOException e) {
                 System.out.println("Error writing to file: " + e.getMessage());
             }
@@ -88,13 +88,13 @@ public class MonteCarloSimulation {
     private static int getRandomNumRanks(Random random) { return 6 + random.nextInt(300);}
 
     private static String getRandomDefImplicationDistribution(Random random) {
-        String[] distributions = {"f", "lg", "ld", "r", "n"};
+        String[] distributions = {"f", "lg", "ld", "r", "n","eg","ed"};
         return distributions[random.nextInt(distributions.length)];
     }
 
 
     private static int getRandomNumDefImplications(Random random, int min) {
-        return min + random.nextInt(50000); 
+        return min + random.nextInt(40000); 
     }
 
     private static int getRandomMinStatementsPerRank(Random random) {
@@ -106,7 +106,7 @@ public class MonteCarloSimulation {
     }
 
     private static String getRandomTransitivity(Random random) {
-        String[] transitivityOptions = {"y", "n", "r"};
+        String[] transitivityOptions = { "n"};
         return transitivityOptions[random.nextInt(transitivityOptions.length)];
     }
 

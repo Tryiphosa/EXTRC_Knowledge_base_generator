@@ -1,0 +1,17 @@
+ov2
+1:5
+5
+lg
+0
+30
+n
+n
+2|4
+1,2,3
+lowerlatin
+n
+y
+y
+n
+q
+
